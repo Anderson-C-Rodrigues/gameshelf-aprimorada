@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameShelf - Wishlist</title>
+  <link rel="stylesheet" href="style.css?v=backend-php-2">
+</head>
+<body>
+  <header>
+    <a href="index.html" class="logo">Game<span>Shelf</span></a>
+    <nav>
+      <a href="index.html">Dashboard</a>
+      <a href="colecao.html">Coleção</a>
+      <a href="wishlist.html">Wishlist</a>
+      <a href="perfil.html">Perfil</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h2>Wishlist</h2>
+      <p>Guarde os jogos desejados, defina prioridades e mova para a coleção quando comprar ou começar a jogar.</p>
+    </section>
+
+    <section class="card">
+      <h3>Adicionar Jogo Desejado</h3>
+
+      <form id="form-wishlist">
+        <div class="form-grid">
+          <div>
+            <label for="titulo">Título</label>
+            <input type="text" id="titulo" required>
+          </div>
+
+          <div>
+            <label for="plataforma">Plataforma</label>
+            <input type="text" id="plataforma" placeholder="PC, PlayStation, Xbox, Switch...">
+          </div>
+
+          <div>
+            <label for="prioridade">Prioridade</label>
+            <select id="prioridade">
+              <option value="alta">Alta</option>
+              <option value="media" selected>Média</option>
+              <option value="baixa">Baixa</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="observacao">Observação</label>
+            <input type="text" id="observacao" placeholder="Preço, promoção, motivo...">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Adicionar à Wishlist</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="toolbar">
+      <input type="text" id="busca-wishlist" placeholder="Buscar na wishlist">
+
+      <select id="filtro-prioridade">
+        <option value="">Todas as prioridades</option>
+        <option value="alta">Alta</option>
+        <option value="media">Média</option>
+        <option value="baixa">Baixa</option>
+      </select>
+
+      <select id="ordenacao-wishlist">
+        <option value="recente">Mais recentes</option>
+        <option value="titulo">Nome</option>
+        <option value="prioridade">Prioridade</option>
+      </select>
+    </section>
+
+    <section id="lista-wishlist" class="game-grid"></section>
+  </main>
+
+  <script src="storage.js?v=backend-php-2"></script>
+  <script>
+    const formWishlist = document.getElementById('form-wishlist');
+    const buscaWishlist = document.getElementById('busca-wishlist');
+    const filtroPrioridade = document.getElementById('filtro-prioridade');
+    const ordenacaoWishlist = document.getElementById('ordenacao-wishlist');
+
+    formWishlist.addEventListener('submit', adicionarWishlist);
+    buscaWishlist.addEventListener('input', renderizarWishlist);
+    filtroPrioridade.addEventListener('change', renderizarWishlist);
+    ordenacaoWishlist.addEventListener('change', renderizarWishlist);
+
+    function adicionarWishlist(evento) {
+      evento.preventDefault();
+
+      const lista = obterWishlist();
+
+      const item = {
+        id: gerarId(),
+        titulo: document.getElementById('titulo').value.trim(),
+        plataforma: document.getElementById('plataforma').value.trim(),
+        prioridade: document.getElementById('prioridade').value,
+        observacao: document.getElementById('observacao').value.trim()
+      };
+
+      lista.push(item);
+      salvarWishlist(lista);
+
+      formWishlist.reset();
+      document.getElementById('prioridade').value = 'media';
+
+      renderizarWishlist();
+      alert('Jogo adicionado à wishlist!');
+    }
+
+    function renderizarWishlist() {
+      const container = document.getElementById('lista-wishlist');
+      const busca = buscaWishlist.value.toLowerCase().trim();
+      const prioridade = filtroPrioridade.value;
+      const ordem = ordenacaoWishlist.value;
+
+      let lista = obterWishlist();
+
+      lista = lista.filter(item => {
+        const texto = `${item.titulo} ${item.plataforma} ${item.observacao}`.toLowerCase();
+        const passaBusca = texto.includes(busca);
+        const passaPrioridade = !prioridade || item.prioridade === prioridade;
+        return passaBusca && passaPrioridade;
+      });
+
+      lista.sort((a, b) => {
+        if (ordem === 'titulo') return a.titulo.localeCompare(b.titulo);
+        if (ordem === 'prioridade') {
+          const peso = { alta: 1, media: 2, baixa: 3 };
+          return peso[a.prioridade] - peso[b.prioridade];
+        }
+        return 0;
+      });
+
+      if (lista.length === 0) {
+        container.innerHTML = '<p class="empty-state">Nenhum jogo na wishlist.</p>';
+        return;
+      }
+
+      container.innerHTML = lista.map(item => `
+        <article class="game-card">
+          <img src="${gerarCapaPadrao(item.titulo)}" alt="Capa de ${escaparHTML(item.titulo)}">
+          <div class="game-content">
+            <h3>${escaparHTML(item.titulo)}</h3>
+            <p class="game-meta">${escaparHTML(item.plataforma || 'Sem plataforma')}</p>
+            <span class="badge prioridade-${item.prioridade}">Prioridade ${formatarPrioridade(item.prioridade)}</span>
+            <p>${escaparHTML(item.observacao || 'Sem observações.')}</p>
+            <div class="actions">
+              <button class="btn-pequeno btn-secundario" onclick="moverParaColecao('${item.id}')">Mover para coleção</button>
+              <button class="btn-pequeno btn-excluir" onclick="removerWishlist('${item.id}')">Remover</button>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    function removerWishlist(id) {
+      if (!confirm('Deseja remover este jogo da wishlist?')) return;
+
+      const lista = obterWishlist().filter(item => item.id !== id);
+      salvarWishlist(lista);
+      renderizarWishlist();
+    }
+
+    function moverParaColecao(id) {
+      const lista = obterWishlist();
+      const item = lista.find(jogo => jogo.id === id);
+
+      if (!item) return;
+      if (!confirm('Deseja mover este jogo para a coleção?')) return;
+
+      const jogos = obterJogos();
+
+      jogos.push({
+        id: gerarId(),
+        titulo: item.titulo,
+        plataforma: item.plataforma,
+        genero: '',
+        ano: '',
+        desenvolvedora: '',
+        capa: gerarCapaPadrao(item.titulo),
+        nota: '',
+        status: 'nao-iniciado'
+      });
+
+      salvarJogos(jogos);
+      salvarWishlist(lista.filter(jogo => jogo.id !== id));
+      renderizarWishlist();
+      alert('Jogo movido para a coleção!');
+    }
+
+    window.onload = renderizarWishlist;
+  </script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameShelf - Integrações</title>
+  <link rel="stylesheet" href="style.css?v=backend-php-2">
+</head>
+<body>
+  <header>
+    <a href="index.html" class="logo">Game<span>Shelf</span></a>
+    <nav>
+      <a href="index.html">Dashboard</a>
+      <a href="colecao.html">Coleção</a>
+      <a href="wishlist.html">Wishlist</a>
+      <a href="perfil.html">Perfil</a>
+      <a href="integracoes.html">Integrações</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h2>Integrações com plataformas</h2>
+      <p>Use esta área para testar importações externas. Quando os dados forem encontrados, eles são salvos no GameShelf local.</p>
+    </section>
+
+    <section class="card">
+      <h3>Importar perfil externo</h3>
+      <p class="muted">Cole um link público do Your Gamer Profile. O backend tenta ler os dados públicos e preencher o perfil local.</p>
+      <input type="text" id="url-perfil" placeholder="https://yourgamerprofile.com/usuario">
+      <div class="actions">
+        <button onclick="importarPerfilBackend()">Importar perfil</button>
+      </div>
+      <div id="saida-perfil" class="api-output"></div>
+    </section>
+
+    <section class="card">
+      <h3>Importar jogos do perfil</h3>
+      <p class="muted">O backend tenta localizar jogos públicos na página. Quando a plataforma não libera a lista completa no HTML, use a importação por texto na página Coleção.</p>
+      <input type="text" id="url-jogos" placeholder="https://yourgamerprofile.com/usuario">
+      <div class="actions">
+        <button onclick="importarJogosBackend()">Importar jogos</button>
+      </div>
+      <div id="saida-jogos" class="api-output"></div>
+    </section>
+
+    <section class="card">
+      <h3>Buscar jogo no RAWG</h3>
+      <p class="muted">Configure sua chave no arquivo <strong>api/config.php</strong> para usar a base RAWG.</p>
+      <input type="text" id="busca-rawg" placeholder="Exemplo: Elden Ring">
+      <div class="actions">
+        <button onclick="buscarRawg()">Buscar no RAWG</button>
+      </div>
+      <div id="saida-rawg" class="api-output"></div>
+    </section>
+
+    <section class="card">
+      <h3>PlayStation</h3>
+      <p class="muted">Esta área está preparada para uma integração futura com autenticação segura. Não coloque tokens pessoais no front-end.</p>
+      <input type="text" id="psn-id" placeholder="Online ID da PlayStation">
+      <div class="actions">
+        <button onclick="testarPlayStation()">Testar integração PlayStation</button>
+      </div>
+      <div id="saida-psn" class="api-output"></div>
+    </section>
+  </main>
+
+  <script src="storage.js?v=backend-php-2"></script>
+  <script>
+    const API = 'api/index.php?resource=';
+
+    async function postApi(resource, body) {
+      const resposta = await fetch(API + resource, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      return await resposta.json();
+    }
+
+    function mostrarMensagem(id, tipo, titulo, texto) {
+      const classe = tipo === 'ok' ? 'status-zerado' : tipo === 'aviso' ? 'status-pausado' : 'status-abandonado';
+      document.getElementById(id).innerHTML = `
+        <div class="item-simples">
+          <span class="badge ${classe}">${escaparHTML(titulo)}</span>
+          <p>${escaparHTML(texto)}</p>
+        </div>
+      `;
+    }
+
+    function mostrarPerfil(id, perfil) {
+      document.getElementById(id).innerHTML = `
+        <div class="lista-simples">
+          <div class="item-simples"><strong>Gamertag:</strong> ${escaparHTML(perfil.gamertag || perfil.nome || 'Não encontrado')}</div>
+          <div class="item-simples"><strong>Jogos:</strong> ${escaparHTML(perfil.totalJogosExternos || 'Não informado')}</div>
+          <div class="item-simples"><strong>Horas jogadas:</strong> ${escaparHTML(perfil.horasJogadas || 'Não informado')}</div>
+          <div class="item-simples"><strong>Conquistas:</strong> ${escaparHTML(perfil.conquistas || 'Não informado')}</div>
+          <div class="item-simples"><strong>Jogos completos:</strong> ${escaparHTML(perfil.jogosCompletos || 'Não informado')}</div>
+          <div class="item-simples"><strong>Verificação:</strong> ${escaparHTML(perfil.perfilVerificado || 'Não informado')}</div>
+          <div class="item-simples"><strong>Plataforma principal:</strong> ${escaparHTML(perfil.plataformaPrincipal || perfil.plataforma || 'Não informada')}</div>
+          <div class="item-simples"><strong>Gêneros:</strong> ${escaparHTML(perfil.generosPrincipais || perfil.genero || 'Não informados')}</div>
+        </div>
+      `;
+    }
+
+    function mostrarJogos(id, jogos, mensagem) {
+      if (!jogos || jogos.length === 0) {
+        mostrarMensagem(id, 'aviso', 'Nenhum jogo importado', mensagem || 'Nenhum jogo público foi localizado automaticamente.');
+        return;
+      }
+
+      document.getElementById(id).innerHTML = `
+        <div class="item-simples">
+          <strong>${jogos.length} jogo(s) importado(s) para a coleção.</strong>
+          <p>${escaparHTML(mensagem || 'Jogos encontrados.')}</p>
+        </div>
+        <div class="lista-simples">
+          ${jogos.slice(0, 20).map(jogo => `<div class="item-simples">${escaparHTML(jogo.titulo)}</div>`).join('')}
+        </div>
+      `;
+    }
+
+    async function importarPerfilBackend() {
+      const url = document.getElementById('url-perfil').value.trim();
+      if (!url) {
+        alert('Informe o link do perfil.');
+        return;
+      }
+
+      mostrarMensagem('saida-perfil', 'aviso', 'Carregando', 'Buscando dados públicos do perfil...');
+
+      const dados = await postApi('import_profile', { url });
+
+      if (dados.ok && dados.profile) {
+        salvarDados(CHAVE_PERFIL, dados.profile);
+        mostrarPerfil('saida-perfil', dados.profile);
+        alert('Perfil importado e salvo localmente. Veja a página Perfil.');
+      } else {
+        mostrarMensagem('saida-perfil', 'erro', 'Erro', dados.message || 'Não foi possível importar o perfil.');
+      }
+    }
+
+    async function importarJogosBackend() {
+      const url = document.getElementById('url-jogos').value.trim();
+      if (!url) {
+        alert('Informe o link do perfil.');
+        return;
+      }
+
+      mostrarMensagem('saida-jogos', 'aviso', 'Carregando', 'Tentando localizar jogos públicos...');
+
+      const dados = await postApi('import_games', { url });
+
+      if (dados.ok && dados.games && dados.games.length) {
+        const jogosAtuais = obterJogos();
+        const jogos = dados.games.map(jogo => ({
+          ...jogo,
+          capa: jogo.capa || gerarCapaPadrao(jogo.titulo)
+        }));
+        salvarJogos(jogosAtuais.concat(jogos));
+        mostrarJogos('saida-jogos', jogos, dados.message);
+        alert(jogos.length + ' jogo(s) importado(s) para a Coleção.');
+      } else {
+        mostrarJogos('saida-jogos', [], dados.message || 'Nenhum jogo importado automaticamente.');
+      }
+    }
+
+    async function buscarRawg() {
+      const query = document.getElementById('busca-rawg').value.trim();
+      if (!query) {
+        alert('Digite o nome do jogo.');
+        return;
+      }
+
+      mostrarMensagem('saida-rawg', 'aviso', 'Carregando', 'Buscando na base RAWG...');
+      const dados = await postApi('rawg_search', { query });
+
+      if (!dados.ok) {
+        mostrarMensagem('saida-rawg', 'aviso', 'Configuração necessária', dados.message || 'Configure a API.');
+        return;
+      }
+
+      const resultados = dados.raw && dados.raw.results ? dados.raw.results : [];
+      if (!resultados.length) {
+        mostrarMensagem('saida-rawg', 'aviso', 'Sem resultados', 'Nenhum jogo encontrado.');
+        return;
+      }
+
+      document.getElementById('saida-rawg').innerHTML = `
+        <div class="lista-simples">
+          ${resultados.slice(0, 8).map(jogo => `<div class="item-simples"><strong>${escaparHTML(jogo.name)}</strong><p>Lançamento: ${escaparHTML(jogo.released || 'não informado')}</p></div>`).join('')}
+        </div>
+      `;
+    }
+
+    async function testarPlayStation() {
+      const onlineId = document.getElementById('psn-id').value.trim();
+      const dados = await postApi('playstation_import', { onlineId });
+      mostrarMensagem('saida-psn', 'aviso', 'Integração futura', dados.message || 'Teste concluído.');
+    }
+  </script>
+</body>
+</html>

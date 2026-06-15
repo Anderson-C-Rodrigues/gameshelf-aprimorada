@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameShelf - Perfil</title>
+  <link rel="stylesheet" href="style.css?v=backend-php-2">
+</head>
+<body>
+  <header>
+    <a href="index.html" class="logo">Game<span>Shelf</span></a>
+    <nav>
+      <a href="index.html">Dashboard</a>
+      <a href="colecao.html">Coleção</a>
+      <a href="wishlist.html">Wishlist</a>
+      <a href="perfil.html">Perfil</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h2>Perfil Gamer Personalizável</h2>
+      <p>Preencha seus dados, adicione um perfil externo e personalize as estatísticas exibidas no Dashboard.</p>
+    </section>
+
+    <section id="preview-perfil" class="card"></section>
+
+    <section class="card">
+      <h3>Informações Básicas</h3>
+
+      <form id="form-perfil">
+        <div class="form-grid">
+          <div>
+            <label for="nome">Nome do perfil</label>
+            <input type="text" id="nome" placeholder="Digite o nome do perfil">
+          </div>
+
+          <div>
+            <label for="gamertag">Gamertag</label>
+            <input type="text" id="gamertag" placeholder="Exemplo: Player123">
+          </div>
+
+          <div>
+            <label for="avatar-url">Avatar por URL</label>
+            <input type="text" id="avatar-url" placeholder="Cole a URL do avatar">
+          </div>
+
+          <div>
+            <label for="avatar-arquivo">Avatar por arquivo</label>
+            <input type="file" id="avatar-arquivo" accept="image/*">
+          </div>
+
+          <div>
+            <label for="plataforma">Plataforma favorita</label>
+            <input type="text" id="plataforma" placeholder="PC, PlayStation, Xbox...">
+          </div>
+
+          <div>
+            <label for="genero">Gênero favorito</label>
+            <input type="text" id="genero" placeholder="RPG, FPS, Corrida...">
+          </div>
+
+          <div>
+            <label for="perfil-externo">Link de perfil externo</label>
+            <input type="text" id="perfil-externo" placeholder="https://...">
+          </div>
+
+          <div>
+            <label for="bio">Frase do perfil</label>
+            <textarea id="bio" placeholder="Escreva uma frase curta para o perfil"></textarea>
+          </div>
+        </div>
+
+        <hr>
+
+        <h3>Estatísticas Externas Personalizadas</h3>
+        <p class="game-meta">Esses campos são livres. O usuário pode preencher com dados de qualquer plataforma gamer ou deixar em branco.</p>
+
+        <div class="form-grid">
+          <div>
+            <label for="total-jogos-externos">Total de jogos externos</label>
+            <input type="number" id="total-jogos-externos" min="0" placeholder="Exemplo: 150">
+          </div>
+
+          <div>
+            <label for="horas-jogadas">Horas jogadas</label>
+            <input type="text" id="horas-jogadas" placeholder="Exemplo: 500h">
+          </div>
+
+          <div>
+            <label for="conquistas">Conquistas / Platinas</label>
+            <input type="number" id="conquistas" min="0" placeholder="Exemplo: 10">
+          </div>
+
+          <div>
+            <label for="jogos-completos">Jogos completos</label>
+            <input type="number" id="jogos-completos" min="0" placeholder="Exemplo: 25">
+          </div>
+
+          <div>
+            <label for="perfil-verificado">Status do perfil</label>
+            <select id="perfil-verificado">
+              <option value="">Não informado</option>
+              <option value="Perfil verificado">Perfil verificado</option>
+              <option value="Perfil não verificado">Perfil não verificado</option>
+              <option value="Perfil público">Perfil público</option>
+              <option value="Perfil privado">Perfil privado</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="plataforma-principal">Plataforma principal</label>
+            <input type="text" id="plataforma-principal" placeholder="Exemplo: PC">
+          </div>
+
+          <div>
+            <label for="generos-principais">Gêneros principais</label>
+            <input type="text" id="generos-principais" placeholder="Exemplo: Shooter, RPG, Indie">
+          </div>
+        </div>
+
+        <hr>
+
+        <h3>Distribuição por Plataforma</h3>
+        <div class="form-grid">
+          <div>
+            <label for="playstation">PlayStation</label>
+            <input type="number" id="playstation" min="0" placeholder="Quantidade de jogos">
+          </div>
+
+          <div>
+            <label for="xbox">Xbox</label>
+            <input type="number" id="xbox" min="0" placeholder="Quantidade de jogos">
+          </div>
+
+          <div>
+            <label for="pc">PC</label>
+            <input type="number" id="pc" min="0" placeholder="Quantidade de jogos">
+          </div>
+
+          <div>
+            <label for="nintendo">Nintendo</label>
+            <input type="number" id="nintendo" min="0" placeholder="Quantidade de jogos">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Salvar Perfil</button>
+          <button type="button" class="btn-secundario" onclick="carregarPerfilExemplo()">Carregar dados de perfil</button>
+          <button type="button" class="btn-excluir" onclick="limparPerfil()">Limpar Perfil</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h3>Preferências Visuais</h3>
+      <p id="tema-exibido">Tema atual: Escuro</p>
+      <div class="actions">
+        <button onclick="alternarTemaGamer()">Alternar Tema Claro / Escuro</button>
+      </div>
+    </section>
+
+    <section class="card" style="border-left-color: var(--danger-color);">
+      <h3>Zerar Sistema</h3>
+      <p>A ação abaixo limpará em definitivo todos os jogos, reviews, perfil e wishlist salvos localmente neste navegador.</p>
+      <div class="actions">
+        <button onclick="limparTudo()" class="btn-excluir">Resetar Banco de Dados Local</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="storage.js?v=backend-php-2"></script>
+  <script>
+    const formPerfil = document.getElementById('form-perfil');
+    formPerfil.addEventListener('submit', salvarPerfil);
+
+    function carregarPaginaPerfil() {
+      const perfil = carregarDados(CHAVE_PERFIL, carregarPerfilPadrao());
+
+      document.getElementById('nome').value = perfil.nome || '';
+      document.getElementById('gamertag').value = perfil.gamertag || '';
+      document.getElementById('avatar-url').value = perfil.avatar && !perfil.avatar.startsWith('data:') ? perfil.avatar : '';
+      document.getElementById('plataforma').value = perfil.plataforma || '';
+      document.getElementById('genero').value = perfil.genero || '';
+      document.getElementById('perfil-externo').value = perfil.perfilExterno || '';
+      document.getElementById('bio').value = perfil.bio || '';
+      document.getElementById('total-jogos-externos').value = perfil.totalJogosExternos || '';
+      document.getElementById('horas-jogadas').value = perfil.horasJogadas || '';
+      document.getElementById('conquistas').value = perfil.conquistas || '';
+      document.getElementById('jogos-completos').value = perfil.jogosCompletos || '';
+      document.getElementById('perfil-verificado').value = perfil.perfilVerificado || '';
+      document.getElementById('plataforma-principal').value = perfil.plataformaPrincipal || '';
+      document.getElementById('generos-principais').value = perfil.generosPrincipais || '';
+      document.getElementById('playstation').value = perfil.playstation || '';
+      document.getElementById('xbox').value = perfil.xbox || '';
+      document.getElementById('pc').value = perfil.pc || '';
+      document.getElementById('nintendo').value = perfil.nintendo || '';
+
+      renderizarPreviewPerfil();
+      atualizarTextoTema();
+    }
+
+    function renderizarPreviewPerfil() {
+      const perfil = carregarDados(CHAVE_PERFIL, carregarPerfilPadrao());
+      const jogos = obterJogos();
+      const wishlist = obterWishlist();
+
+      const nome = perfil.nome || perfil.gamertag || 'Perfil não configurado';
+      const inicial = nome.substring(0, 1).toUpperCase() || 'G';
+      const avatar = perfil.avatar
+        ? `<img src="${perfil.avatar}" class="avatar" alt="Avatar do perfil">`
+        : `<div class="avatar-placeholder">${escaparHTML(inicial)}</div>`;
+
+      document.getElementById('preview-perfil').innerHTML = `
+        <div class="profile-card">
+          ${avatar}
+          <div>
+            <h3>${escaparHTML(nome)}</h3>
+            <p>${escaparHTML(perfil.bio || 'Preencha o formulário abaixo para personalizar este perfil.')}</p>
+            <p><strong>Gamertag:</strong> ${escaparHTML(perfil.gamertag || 'Não informada')}</p>
+            <p><strong>Plataforma favorita:</strong> ${escaparHTML(perfil.plataforma || 'Não informada')} | <strong>Gênero favorito:</strong> ${escaparHTML(perfil.genero || 'Não informado')}</p>
+            <p><strong>Jogos cadastrados no GameShelf:</strong> ${jogos.length} | <strong>Wishlist:</strong> ${wishlist.length}</p>
+            ${perfil.perfilExterno ? `<p><a href="${escaparHTML(perfil.perfilExterno)}" target="_blank" class="btn btn-pequeno">Abrir perfil externo</a></p>` : '<p class="game-meta">Nenhum perfil externo cadastrado.</p>'}
+          </div>
+        </div>
+      `;
+    }
+
+    async function salvarPerfil(evento) {
+      evento.preventDefault();
+
+      const perfilAtual = carregarDados(CHAVE_PERFIL, carregarPerfilPadrao());
+      const arquivo = document.getElementById('avatar-arquivo').files[0];
+      const avatarUrl = document.getElementById('avatar-url').value.trim();
+
+      let avatar = perfilAtual.avatar || '';
+
+      if (arquivo) {
+        avatar = await converterImagemBase64(arquivo);
+      } else if (avatarUrl) {
+        avatar = avatarUrl;
+      }
+
+      const perfil = {
+        nome: document.getElementById('nome').value.trim(),
+        gamertag: document.getElementById('gamertag').value.trim(),
+        avatar,
+        plataforma: document.getElementById('plataforma').value.trim(),
+        genero: document.getElementById('genero').value.trim(),
+        perfilExterno: document.getElementById('perfil-externo').value.trim(),
+        bio: document.getElementById('bio').value.trim(),
+        totalJogosExternos: document.getElementById('total-jogos-externos').value.trim(),
+        horasJogadas: document.getElementById('horas-jogadas').value.trim(),
+        conquistas: document.getElementById('conquistas').value.trim(),
+        jogosCompletos: document.getElementById('jogos-completos').value.trim(),
+        perfilVerificado: document.getElementById('perfil-verificado').value,
+        plataformaPrincipal: document.getElementById('plataforma-principal').value.trim(),
+        generosPrincipais: document.getElementById('generos-principais').value.trim(),
+        playstation: document.getElementById('playstation').value.trim(),
+        xbox: document.getElementById('xbox').value.trim(),
+        pc: document.getElementById('pc').value.trim(),
+        nintendo: document.getElementById('nintendo').value.trim()
+      };
+
+      salvarDados(CHAVE_PERFIL, perfil);
+      document.getElementById('avatar-arquivo').value = '';
+      renderizarPreviewPerfil();
+      alert('Perfil salvo com sucesso!');
+    }
+
+    function carregarPerfilExemplo() {
+      if (!confirm('Deseja carregar dados de perfil para demonstração?')) {
+        return;
+      }
+
+      const perfil = {
+        nome: 'Dragon Black',
+        gamertag: 'Dragon_bLaCk445',
+        avatar: '',
+        plataforma: 'PlayStation',
+        genero: 'Shooter, RPG, Simulator e Indie',
+        perfilExterno: 'https://yourgamerprofile.com/Dragon_bLaCk445',
+        bio: 'Perfil gamer usado como exemplo para demonstrar a personalização do GameShelf.',
+        totalJogosExternos: '488',
+        horasJogadas: '12.493h',
+        conquistas: '4',
+        jogosCompletos: '4',
+        perfilVerificado: 'Perfil verificado',
+        plataformaPrincipal: 'PlayStation',
+        generosPrincipais: 'Shooter, RPG, Simulator, Indie',
+        playstation: '323',
+        xbox: '83',
+        pc: '82',
+        nintendo: ''
+      };
+
+      salvarDados(CHAVE_PERFIL, perfil);
+      carregarPaginaPerfil();
+      alert('Dados de perfil carregados com sucesso!');
+    }
+
+    function atualizarTextoTema() {
+      const temaAtual = carregarDados(CHAVE_TEMA, 'escuro');
+      const textoTema = temaAtual === 'claro' ? 'Claro' : 'Escuro';
+      document.getElementById('tema-exibido').textContent = 'Tema atual: ' + textoTema;
+    }
+
+    function alternarTemaGamer() {
+      const temaAtual = carregarDados(CHAVE_TEMA, 'escuro');
+      const novoTema = temaAtual === 'claro' ? 'escuro' : 'claro';
+      salvarDados(CHAVE_TEMA, novoTema);
+      aplicarTemaGlobal();
+      atualizarTextoTema();
+    }
+
+    function limparPerfil() {
+      if (!confirm('Deseja limpar apenas as informações do perfil?')) return;
+
+      salvarDados(CHAVE_PERFIL, carregarPerfilPadrao());
+      formPerfil.reset();
+      renderizarPreviewPerfil();
+      alert('Perfil limpo com sucesso!');
+    }
+
+    function limparTudo() {
+      if (!confirm('ATENÇÃO: deseja apagar todos os dados salvos no GameShelf?')) return;
+
+      localStorage.clear();
+      alert('Dados limpos. A página será recarregada.');
+      window.location.href = 'index.html';
+    }
+
+    window.onload = carregarPaginaPerfil;
+  </script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameShelf - Dashboard</title>
+  <link rel="stylesheet" href="style.css?v=backend-php-2">
+</head>
+<body>
+  <header>
+    <a href="index.html" class="logo">Game<span>Shelf</span></a>
+    <nav>
+      <a href="index.html">Dashboard</a>
+      <a href="colecao.html">Coleção</a>
+      <a href="wishlist.html">Wishlist</a>
+      <a href="perfil.html">Perfil</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h2 id="titulo-dashboard">Seu painel gamer personalizável</h2>
+      <p>Organize sua coleção, acompanhe status, notas, wishlist e configure um perfil gamer com os dados que você quiser.</p>
+    </section>
+
+    <section id="resumo-perfil" class="card"></section>
+
+    <section class="grid-cards">
+      <div class="stat-card">
+        <h3>Total de Jogos</h3>
+        <strong id="total-jogos">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <h3>Jogos Zerados</h3>
+        <strong id="jogos-zerados">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <h3>Na Wishlist</h3>
+        <strong id="total-wishlist">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <h3>Média de Notas</h3>
+        <strong id="media-notas">0.0</strong>
+      </div>
+    </section>
+
+    <section class="progress-box">
+      <div class="progress-top">
+        <span>Progresso de Avaliações</span>
+        <span id="porcentagem-avaliacoes">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="barra-avaliacoes"></div>
+      </div>
+    </section>
+
+    <section id="estatisticas-externas" class="card"></section>
+
+    <section class="card">
+      <h3>Modo Demonstração</h3>
+      <p>O projeto começa vazio para que o usuário ou professor possa preencher os formulários. Este botão é opcional e serve apenas para demonstrar o sistema rapidamente.</p>
+      <div class="actions">
+        <button onclick="carregarJogosExemplo()">Carregar jogos de teste</button>
+        <button class="btn-excluir" onclick="limparJogosEWishlist()">Limpar jogos e wishlist</button>
+      </div>
+    </section>
+
+    <section class="duas-colunas">
+      <div>
+        <h2>Adicionados Recentemente</h2>
+        <div id="recentes" class="lista-simples"></div>
+      </div>
+
+      <div>
+        <h2>Wishlist Recente</h2>
+        <div id="wishlist-recente" class="lista-simples"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="storage.js?v=backend-php-2"></script>
+  <script>
+    function carregarDashboard() {
+      const jogos = obterJogos();
+      const wishlist = obterWishlist();
+      const perfil = carregarDados(CHAVE_PERFIL, carregarPerfilPadrao());
+
+      const nome = perfil.nome || perfil.gamertag || '';
+
+      if (nome) {
+        document.getElementById('titulo-dashboard').textContent = 'Painel gamer de ' + nome;
+      }
+
+      carregarResumoPerfil(perfil);
+      carregarEstatisticas(jogos, wishlist);
+      carregarRecentes(jogos);
+      carregarWishlistRecente(wishlist);
+      carregarEstatisticasExternas(perfil);
+    }
+
+    function carregarResumoPerfil(perfil) {
+      const resumo = document.getElementById('resumo-perfil');
+      const nome = perfil.nome || perfil.gamertag || 'Perfil ainda não configurado';
+      const plataforma = perfil.plataforma || perfil.plataformaPrincipal || 'Não informada';
+      const genero = perfil.genero || perfil.generosPrincipais || 'Não informado';
+      const bio = perfil.bio || 'Use a página Perfil para preencher suas informações gamer.';
+      const inicial = nome.substring(0, 1).toUpperCase() || 'G';
+
+      const avatar = perfil.avatar
+        ? `<img src="${perfil.avatar}" class="avatar" alt="Avatar do perfil">`
+        : `<div class="avatar-placeholder">${escaparHTML(inicial)}</div>`;
+
+      resumo.innerHTML = `
+        <div class="profile-card">
+          ${avatar}
+          <div>
+            <h3>${escaparHTML(nome)}</h3>
+            <p>${escaparHTML(bio)}</p>
+            <p><strong>Plataforma principal:</strong> ${escaparHTML(plataforma)} | <strong>Gêneros:</strong> ${escaparHTML(genero)}</p>
+            ${perfil.perfilExterno ? `<p><a class="btn btn-pequeno" href="${escaparHTML(perfil.perfilExterno)}" target="_blank">Abrir perfil externo</a></p>` : '<p class="game-meta">Nenhum perfil externo cadastrado.</p>'}
+          </div>
+        </div>
+      `;
+    }
+
+    function carregarEstatisticas(jogos, wishlist) {
+      const total = jogos.length;
+      const zerados = jogos.filter(jogo => jogo.status === 'zerado').length;
+      const notas = jogos.map(jogo => Number(jogo.nota)).filter(nota => nota > 0);
+      const media = notas.length ? notas.reduce((soma, nota) => soma + nota, 0) / notas.length : 0;
+      const porcentagem = total ? Math.round((notas.length / total) * 100) : 0;
+
+      document.getElementById('total-jogos').textContent = total;
+      document.getElementById('jogos-zerados').textContent = zerados;
+      document.getElementById('total-wishlist').textContent = wishlist.length;
+      document.getElementById('media-notas').textContent = media.toFixed(1);
+      document.getElementById('porcentagem-avaliacoes').textContent = porcentagem + '% dos jogos avaliados';
+      document.getElementById('barra-avaliacoes').style.width = porcentagem + '%';
+    }
+
+    function carregarEstatisticasExternas(perfil) {
+      const container = document.getElementById('estatisticas-externas');
+      const possuiDados = perfil.totalJogosExternos || perfil.horasJogadas || perfil.conquistas || perfil.jogosCompletos || perfil.perfilVerificado || perfil.playstation || perfil.xbox || perfil.pc || perfil.nintendo;
+
+      if (!possuiDados) {
+        container.innerHTML = `
+          <h3>Estatísticas de Perfil Gamer</h3>
+          <p class="empty-state">Nenhuma estatística externa cadastrada. Acesse a página Perfil e preencha os campos para personalizar esta seção.</p>
+        `;
+        return;
+      }
+
+      const totalPlataformas = Number(perfil.playstation || 0) + Number(perfil.xbox || 0) + Number(perfil.pc || 0) + Number(perfil.nintendo || 0);
+
+      container.innerHTML = `
+        <h3>Estatísticas de Perfil Gamer</h3>
+        <section class="grid-cards">
+          <div class="stat-card"><h3>Jogos no perfil externo</h3><strong>${escaparHTML(perfil.totalJogosExternos || '0')}</strong></div>
+          <div class="stat-card"><h3>Horas jogadas</h3><strong>${escaparHTML(perfil.horasJogadas || '0')}</strong></div>
+          <div class="stat-card"><h3>Conquistas/Platinas</h3><strong>${escaparHTML(perfil.conquistas || '0')}</strong></div>
+          <div class="stat-card"><h3>Jogos completos</h3><strong>${escaparHTML(perfil.jogosCompletos || '0')}</strong></div>
+        </section>
+        <p><strong>Status:</strong> ${escaparHTML(perfil.perfilVerificado || 'Não informado')}</p>
+        <p><strong>Plataforma principal:</strong> ${escaparHTML(perfil.plataformaPrincipal || 'Não informada')}</p>
+        <p><strong>Gêneros principais:</strong> ${escaparHTML(perfil.generosPrincipais || 'Não informados')}</p>
+        <div id="barras-plataformas"></div>
+      `;
+
+      renderizarBarraPlataforma('PlayStation', perfil.playstation, totalPlataformas);
+      renderizarBarraPlataforma('Xbox', perfil.xbox, totalPlataformas);
+      renderizarBarraPlataforma('PC', perfil.pc, totalPlataformas);
+      renderizarBarraPlataforma('Nintendo', perfil.nintendo, totalPlataformas);
+    }
+
+    function renderizarBarraPlataforma(nome, valor, total) {
+      if (!valor || Number(valor) <= 0) {
+        return;
+      }
+
+      const porcentagem = total ? Math.round((Number(valor) / total) * 100) : 0;
+      const container = document.getElementById('barras-plataformas');
+
+      container.innerHTML += `
+        <div class="platform-row">
+          <div class="progress-top"><span>${nome}</span><span>${valor} jogos | ${porcentagem}%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${porcentagem}%"></div></div>
+        </div>
+      `;
+    }
+
+    function carregarRecentes(jogos) {
+      const container = document.getElementById('recentes');
+      const recentes = [...jogos].slice(-5).reverse();
+
+      if (recentes.length === 0) {
+        container.innerHTML = '<p class="empty-state">Nenhum jogo cadastrado ainda.</p>';
+        return;
+      }
+
+      container.innerHTML = recentes.map(jogo => `
+        <div class="item-simples">
+          <strong>${escaparHTML(jogo.titulo)}</strong>
+          <p>${escaparHTML(jogo.plataforma || 'Sem plataforma')} | ${formatarStatus(jogo.status)}</p>
+        </div>
+      `).join('');
+    }
+
+    function carregarWishlistRecente(wishlist) {
+      const container = document.getElementById('wishlist-recente');
+      const recentes = [...wishlist].slice(-5).reverse();
+
+      if (recentes.length === 0) {
+        container.innerHTML = '<p class="empty-state">Sua wishlist está vazia.</p>';
+        return;
+      }
+
+      container.innerHTML = recentes.map(item => `
+        <div class="item-simples">
+          <strong>${escaparHTML(item.titulo)}</strong>
+          <p>${escaparHTML(item.plataforma || 'Sem plataforma')} | Prioridade ${formatarPrioridade(item.prioridade)}</p>
+        </div>
+      `).join('');
+    }
+
+    function carregarJogosExemplo() {
+      if (!confirm('Deseja carregar jogos de teste para demonstrar o sistema?')) {
+        return;
+      }
+
+      const jogos = [
+        { id: gerarId(), titulo: 'God of War', plataforma: 'PlayStation', genero: 'Ação/Aventura', ano: '2018', desenvolvedora: 'Santa Monica Studio', capa: gerarCapaPadrao('God of War'), nota: '9.5', status: 'zerado' },
+        { id: gerarId(), titulo: 'Elden Ring', plataforma: 'PC', genero: 'RPG de Ação', ano: '2022', desenvolvedora: 'FromSoftware', capa: gerarCapaPadrao('Elden Ring'), nota: '10', status: 'jogando' },
+        { id: gerarId(), titulo: 'Red Dead Redemption 2', plataforma: 'PC', genero: 'Mundo Aberto', ano: '2018', desenvolvedora: 'Rockstar Games', capa: gerarCapaPadrao('Red Dead Redemption 2'), nota: '9.8', status: 'zerado' },
+        { id: gerarId(), titulo: 'The Witcher 3: Wild Hunt', plataforma: 'PC', genero: 'RPG', ano: '2015', desenvolvedora: 'CD Projekt Red', capa: gerarCapaPadrao('The Witcher 3'), nota: '9.7', status: 'pausado' }
+      ];
+
+      const wishlist = [
+        { id: gerarId(), titulo: "Baldur's Gate 3", plataforma: 'PC', prioridade: 'alta', observacao: 'Adicionar à coleção quando comprar.' },
+        { id: gerarId(), titulo: 'The Last of Us Part II', plataforma: 'PlayStation', prioridade: 'media', observacao: 'Acompanhar preço em promoção.' },
+        { id: gerarId(), titulo: 'Cyberpunk 2077', plataforma: 'PC', prioridade: 'baixa', observacao: 'Comprar futuramente para testar no setup.' }
+      ];
+
+      salvarJogos(jogos);
+      salvarWishlist(wishlist);
+      carregarDashboard();
+    }
+
+    function limparJogosEWishlist() {
+      if (!confirm('Deseja limpar todos os jogos e itens da wishlist?')) {
+        return;
+      }
+
+      salvarJogos([]);
+      salvarWishlist([]);
+      carregarDashboard();
+    }
+
+    window.onload = carregarDashboard;
+  </script>
+</body>
+</html>

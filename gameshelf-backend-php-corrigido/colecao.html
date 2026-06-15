@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameShelf - Coleção</title>
+  <link rel="stylesheet" href="style.css?v=backend-php-2">
+</head>
+<body>
+  <header>
+    <a href="index.html" class="logo">Game<span>Shelf</span></a>
+    <nav>
+      <a href="index.html">Dashboard</a>
+      <a href="colecao.html">Coleção</a>
+      <a href="wishlist.html">Wishlist</a>
+      <a href="perfil.html">Perfil</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h2>Minha Coleção</h2>
+      <p>Cadastre seus jogos, adicione capas, filtre por status e acompanhe sua biblioteca gamer.</p>
+    </section>
+
+    <section class="card">
+      <h3 id="titulo-formulario">Cadastrar Jogo</h3>
+
+      <form id="form-jogo">
+        <input type="hidden" id="jogo-id">
+
+        <div class="form-grid">
+          <div>
+            <label for="titulo">Título</label>
+            <input type="text" id="titulo" required>
+          </div>
+
+          <div>
+            <label for="plataforma">Plataforma</label>
+            <input type="text" id="plataforma" placeholder="PC, PlayStation, Xbox, Switch...">
+          </div>
+
+          <div>
+            <label for="genero">Gênero</label>
+            <input type="text" id="genero" placeholder="RPG, FPS, Ação...">
+          </div>
+
+          <div>
+            <label for="ano">Ano</label>
+            <input type="number" id="ano" min="1970" max="2100">
+          </div>
+
+          <div>
+            <label for="desenvolvedora">Desenvolvedora</label>
+            <input type="text" id="desenvolvedora">
+          </div>
+
+          <div>
+            <label for="nota">Nota</label>
+            <input type="number" id="nota" min="0" max="10" step="0.1">
+          </div>
+
+          <div>
+            <label for="status">Status</label>
+            <select id="status">
+              <option value="nao-iniciado">Não iniciado</option>
+              <option value="jogando">Jogando</option>
+              <option value="zerado">Zerado</option>
+              <option value="pausado">Pausado</option>
+              <option value="abandonado">Abandonado</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="capa-url">Capa por URL</label>
+            <input type="text" id="capa-url" placeholder="Cole a URL da imagem">
+          </div>
+
+          <div>
+            <label for="capa-arquivo">Capa por arquivo</label>
+            <input type="file" id="capa-arquivo" accept="image/*">
+          </div>
+
+          <div>
+            <img id="preview-capa" class="preview-capa" alt="Prévia da capa">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Salvar Jogo</button>
+          <button type="button" class="btn-secundario" onclick="cancelarEdicao()">Cancelar edição</button>
+        </div>
+      </form>
+    </section>
+
+
+    <section class="card">
+      <h3>Importar lista de jogos</h3>
+      <p class="muted">Cole uma lista com um jogo por linha. Use o formato simples ou completo.</p>
+      <textarea id="importar-jogos-texto" placeholder="God of War;PlayStation;Ação/Aventura;2018;Zerado;9.5&#10;Elden Ring;PC;RPG;2022;Jogando;10&#10;Red Dead Redemption 2;PC;Mundo Aberto;2018;Zerado;9.8"></textarea>
+      <div class="actions">
+        <button type="button" onclick="importarJogosPorTexto()">Importar jogos</button>
+        <button type="button" class="btn-secundario" onclick="preencherExemploImportacao()">Preencher exemplo</button>
+      </div>
+    </section>
+
+    <section class="toolbar">
+      <input type="text" id="busca" placeholder="Buscar por título, plataforma ou gênero">
+
+      <select id="filtro-status">
+        <option value="">Todos os status</option>
+        <option value="nao-iniciado">Não iniciado</option>
+        <option value="jogando">Jogando</option>
+        <option value="zerado">Zerado</option>
+        <option value="pausado">Pausado</option>
+        <option value="abandonado">Abandonado</option>
+      </select>
+
+      <select id="ordenacao">
+        <option value="recente">Mais recentes</option>
+        <option value="titulo">Nome</option>
+        <option value="nota">Nota</option>
+        <option value="ano">Ano</option>
+        <option value="status">Status</option>
+      </select>
+    </section>
+
+    <section id="lista-jogos" class="game-grid"></section>
+  </main>
+
+  <script src="storage.js?v=backend-php-2"></script>
+  <script>
+    const formJogo = document.getElementById('form-jogo');
+    const inputBusca = document.getElementById('busca');
+    const filtroStatus = document.getElementById('filtro-status');
+    const ordenacao = document.getElementById('ordenacao');
+    const inputCapaUrl = document.getElementById('capa-url');
+    const inputCapaArquivo = document.getElementById('capa-arquivo');
+    const previewCapa = document.getElementById('preview-capa');
+
+    formJogo.addEventListener('submit', salvarJogo);
+    inputBusca.addEventListener('input', renderizarJogos);
+    filtroStatus.addEventListener('change', renderizarJogos);
+    ordenacao.addEventListener('change', renderizarJogos);
+    inputCapaUrl.addEventListener('input', atualizarPreviewPorUrl);
+    inputCapaArquivo.addEventListener('change', atualizarPreviewPorArquivo);
+
+    function atualizarPreviewPorUrl() {
+      const url = inputCapaUrl.value.trim();
+
+      if (!url) {
+        previewCapa.style.display = 'none';
+        previewCapa.removeAttribute('src');
+        return;
+      }
+
+      previewCapa.src = url;
+      previewCapa.style.display = 'block';
+    }
+
+    async function atualizarPreviewPorArquivo() {
+      const arquivo = inputCapaArquivo.files[0];
+
+      if (!arquivo) {
+        return;
+      }
+
+      const imagem = await converterImagemBase64(arquivo);
+      previewCapa.src = imagem;
+      previewCapa.style.display = 'block';
+    }
+
+    async function salvarJogo(evento) {
+      evento.preventDefault();
+
+      const jogos = obterJogos();
+      const id = document.getElementById('jogo-id').value;
+      const titulo = document.getElementById('titulo').value.trim();
+      const jogoExistente = jogos.find(jogo => jogo.id === id);
+
+      let capa = jogoExistente ? jogoExistente.capa : '';
+
+      const arquivo = inputCapaArquivo.files[0];
+      const url = inputCapaUrl.value.trim();
+
+      if (arquivo) {
+        capa = await converterImagemBase64(arquivo);
+      } else if (url) {
+        capa = url;
+      } else if (!capa) {
+        capa = gerarCapaPadrao(titulo);
+      }
+
+      const jogo = {
+        id: id || gerarId(),
+        titulo,
+        plataforma: document.getElementById('plataforma').value.trim(),
+        genero: document.getElementById('genero').value.trim(),
+        ano: document.getElementById('ano').value.trim(),
+        desenvolvedora: document.getElementById('desenvolvedora').value.trim(),
+        capa,
+        nota: document.getElementById('nota').value.trim(),
+        status: document.getElementById('status').value
+      };
+
+      if (id) {
+        const indice = jogos.findIndex(item => item.id === id);
+        jogos[indice] = jogo;
+      } else {
+        jogos.push(jogo);
+      }
+
+      salvarJogos(jogos);
+      limparFormulario();
+      renderizarJogos();
+      alert('Jogo salvo com sucesso!');
+    }
+
+    function renderizarJogos() {
+      const container = document.getElementById('lista-jogos');
+      const busca = inputBusca.value.toLowerCase().trim();
+      const statusSelecionado = filtroStatus.value;
+      const ordem = ordenacao.value;
+
+      let jogos = obterJogos();
+
+      jogos = jogos.filter(jogo => {
+        const texto = `${jogo.titulo} ${jogo.plataforma} ${jogo.genero}`.toLowerCase();
+        const passaBusca = texto.includes(busca);
+        const passaStatus = !statusSelecionado || jogo.status === statusSelecionado;
+        return passaBusca && passaStatus;
+      });
+
+      jogos.sort((a, b) => {
+        if (ordem === 'titulo') return a.titulo.localeCompare(b.titulo);
+        if (ordem === 'nota') return Number(b.nota || 0) - Number(a.nota || 0);
+        if (ordem === 'ano') return Number(b.ano || 0) - Number(a.ano || 0);
+        if (ordem === 'status') return String(a.status).localeCompare(String(b.status));
+        return 0;
+      });
+
+      if (jogos.length === 0) {
+        container.innerHTML = '<p class="empty-state">Nenhum jogo encontrado.</p>';
+        return;
+      }
+
+      container.innerHTML = jogos.map(jogo => `
+        <article class="game-card">
+          <img src="${jogo.capa || gerarCapaPadrao(jogo.titulo)}" alt="Capa de ${escaparHTML(jogo.titulo)}">
+          <div class="game-content">
+            <h3>${escaparHTML(jogo.titulo)}</h3>
+            <p class="game-meta">${escaparHTML(jogo.plataforma || 'Sem plataforma')} | ${escaparHTML(jogo.genero || 'Sem gênero')}</p>
+            <p class="game-meta">${escaparHTML(jogo.ano || 'Sem ano')} | ${escaparHTML(jogo.desenvolvedora || 'Sem desenvolvedora')}</p>
+            <span class="badge status-${jogo.status}">${formatarStatus(jogo.status)}</span>
+            <p><strong>Nota:</strong> ${jogo.nota ? escaparHTML(jogo.nota) : 'Não avaliado'}</p>
+            <div class="actions">
+              <a class="btn btn-pequeno" href="detalhes.html?id=${jogo.id}">Ver detalhes</a>
+              <button class="btn-pequeno btn-secundario" onclick="editarJogo('${jogo.id}')">Editar</button>
+              <button class="btn-pequeno btn-excluir" onclick="excluirJogo('${jogo.id}')">Excluir</button>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    function editarJogo(id) {
+      const jogos = obterJogos();
+      const jogo = jogos.find(item => item.id === id);
+
+      if (!jogo) return;
+
+      document.getElementById('titulo-formulario').textContent = 'Editar Jogo';
+      document.getElementById('jogo-id').value = jogo.id;
+      document.getElementById('titulo').value = jogo.titulo;
+      document.getElementById('plataforma').value = jogo.plataforma || '';
+      document.getElementById('genero').value = jogo.genero || '';
+      document.getElementById('ano').value = jogo.ano || '';
+      document.getElementById('desenvolvedora').value = jogo.desenvolvedora || '';
+      document.getElementById('nota').value = jogo.nota || '';
+      document.getElementById('status').value = jogo.status || 'nao-iniciado';
+      document.getElementById('capa-url').value = '';
+
+      if (jogo.capa) {
+        previewCapa.src = jogo.capa;
+        previewCapa.style.display = 'block';
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function excluirJogo(id) {
+      if (!confirm('Deseja realmente excluir este jogo?')) return;
+
+      const jogos = obterJogos().filter(jogo => jogo.id !== id);
+      salvarJogos(jogos);
+      renderizarJogos();
+    }
+
+    function cancelarEdicao() {
+      limparFormulario();
+    }
+
+    function limparFormulario() {
+      formJogo.reset();
+      document.getElementById('jogo-id').value = '';
+      document.getElementById('titulo-formulario').textContent = 'Cadastrar Jogo';
+      previewCapa.style.display = 'none';
+      previewCapa.removeAttribute('src');
+    }
+
+
+    function preencherExemploImportacao() {
+      document.getElementById('importar-jogos-texto').value = [
+        'God of War;PlayStation;Ação/Aventura;2018;Zerado;9.5',
+        'Elden Ring;PC;RPG;2022;Jogando;10',
+        'Red Dead Redemption 2;PC;Mundo Aberto;2018;Zerado;9.8',
+        'The Witcher 3: Wild Hunt;PC;RPG;2015;Zerado;10',
+        'Horizon Forbidden West;PlayStation;Ação/Aventura;2022;Jogando;9'
+      ].join('
+');
+    }
+
+    function normalizarStatusImportado(valor) {
+      const texto = String(valor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+      if (texto.includes('zerado') || texto.includes('completo') || texto.includes('finalizado')) {
+        return 'zerado';
+      }
+
+      if (texto.includes('jogando') || texto.includes('andamento')) {
+        return 'jogando';
+      }
+
+      if (texto.includes('pausado')) {
+        return 'pausado';
+      }
+
+      if (texto.includes('abandonado')) {
+        return 'abandonado';
+      }
+
+      return 'nao-iniciado';
+    }
+
+    function importarJogosPorTexto() {
+      const campo = document.getElementById('importar-jogos-texto');
+      const linhas = campo.value.split(/\r?\n/).map(linha => linha.trim()).filter(Boolean);
+
+      if (linhas.length === 0) {
+        alert('Cole pelo menos um jogo para importar.');
+        return;
+      }
+
+      const jogosAtuais = obterJogos();
+      const novosJogos = [];
+
+      linhas.forEach(linha => {
+        const partes = linha.includes(';') ? linha.split(';') : linha.split(',');
+        const titulo = (partes[0] || '').trim();
+
+        if (!titulo) {
+          return;
+        }
+
+        novosJogos.push({
+          id: gerarId(),
+          titulo,
+          plataforma: (partes[1] || '').trim(),
+          genero: (partes[2] || '').trim(),
+          ano: (partes[3] || '').trim(),
+          desenvolvedora: '',
+          capa: gerarCapaPadrao(titulo),
+          nota: (partes[5] || '').trim(),
+          status: normalizarStatusImportado(partes[4] || '')
+        });
+      });
+
+      if (novosJogos.length === 0) {
+        alert('Nenhum jogo válido foi encontrado na lista.');
+        return;
+      }
+
+      salvarJogos(jogosAtuais.concat(novosJogos));
+      campo.value = '';
+      renderizarJogos();
+      alert(novosJogos.length + ' jogo(s) importado(s) com sucesso!');
+    }
+
+    window.onload = renderizarJogos;
+  </script>
+</body>
+</html>

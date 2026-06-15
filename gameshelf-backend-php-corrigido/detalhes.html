@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameShelf - Detalhes</title>
+  <link rel="stylesheet" href="style.css?v=backend-php-2">
+</head>
+<body>
+  <header>
+    <a href="index.html" class="logo">Game<span>Shelf</span></a>
+    <nav>
+      <a href="index.html">Dashboard</a>
+      <a href="colecao.html">Coleção</a>
+      <a href="wishlist.html">Wishlist</a>
+      <a href="perfil.html">Perfil</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="detalhes-jogo"></section>
+
+    <section class="card">
+      <h3>Review e Diário Gamer</h3>
+
+      <form id="form-review">
+        <div class="form-grid">
+          <div>
+            <label for="horas">Horas jogadas</label>
+            <input type="number" id="horas" min="0" placeholder="Exemplo: 45">
+          </div>
+
+          <div>
+            <label for="data-conclusao">Data de conclusão</label>
+            <input type="date" id="data-conclusao">
+          </div>
+
+          <div>
+            <label for="review">Review pessoal</label>
+            <textarea id="review" placeholder="Escreva sua opinião sobre o jogo"></textarea>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Salvar Review</button>
+          <a class="btn btn-secundario" href="colecao.html">Voltar para coleção</a>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script src="storage.js?v=backend-php-2"></script>
+  <script>
+    const parametros = new URLSearchParams(window.location.search);
+    const idJogo = parametros.get('id');
+    const formReview = document.getElementById('form-review');
+
+    formReview.addEventListener('submit', salvarReview);
+
+    function carregarDetalhes() {
+      const jogos = obterJogos();
+      const jogo = jogos.find(item => item.id === idJogo);
+      const container = document.getElementById('detalhes-jogo');
+
+      if (!jogo) {
+        container.innerHTML = `
+          <section class="hero">
+            <h2>Jogo não encontrado</h2>
+            <p>Volte para a coleção e escolha um jogo válido.</p>
+            <div class="actions"><a class="btn" href="colecao.html">Voltar para coleção</a></div>
+          </section>
+        `;
+        document.querySelector('.card').style.display = 'none';
+        return;
+      }
+
+      container.innerHTML = `
+        <section class="hero">
+          <h2>${escaparHTML(jogo.titulo)}</h2>
+          <p>Detalhes completos do jogo selecionado.</p>
+        </section>
+
+        <section class="detalhes-layout">
+          <div>
+            <img class="detalhes-capa" src="${jogo.capa || gerarCapaPadrao(jogo.titulo)}" alt="Capa de ${escaparHTML(jogo.titulo)}">
+          </div>
+
+          <div class="card">
+            <h3>Informações do Jogo</h3>
+            <p><strong>Plataforma:</strong> ${escaparHTML(jogo.plataforma || 'Não informada')}</p>
+            <p><strong>Gênero:</strong> ${escaparHTML(jogo.genero || 'Não informado')}</p>
+            <p><strong>Ano:</strong> ${escaparHTML(jogo.ano || 'Não informado')}</p>
+            <p><strong>Desenvolvedora:</strong> ${escaparHTML(jogo.desenvolvedora || 'Não informada')}</p>
+            <p><strong>Nota:</strong> ${jogo.nota ? escaparHTML(jogo.nota) : 'Não avaliado'}</p>
+            <p><span class="badge status-${jogo.status}">${formatarStatus(jogo.status)}</span></p>
+          </div>
+        </section>
+      `;
+
+      carregarReview();
+    }
+
+    function carregarReview() {
+      const reviews = obterReviews();
+      const review = reviews.find(item => item.idJogo === idJogo);
+
+      if (!review) {
+        return;
+      }
+
+      document.getElementById('horas').value = review.horas || '';
+      document.getElementById('data-conclusao').value = review.dataConclusao || '';
+      document.getElementById('review').value = review.texto || '';
+    }
+
+    function salvarReview(evento) {
+      evento.preventDefault();
+
+      if (!idJogo) {
+        return;
+      }
+
+      const reviews = obterReviews();
+      const indice = reviews.findIndex(item => item.idJogo === idJogo);
+
+      const review = {
+        id: indice >= 0 ? reviews[indice].id : gerarId(),
+        idJogo,
+        horas: document.getElementById('horas').value.trim(),
+        dataConclusao: document.getElementById('data-conclusao').value,
+        texto: document.getElementById('review').value.trim()
+      };
+
+      if (indice >= 0) {
+        reviews[indice] = review;
+      } else {
+        reviews.push(review);
+      }
+
+      salvarReviews(reviews);
+      alert('Review salva com sucesso!');
+    }
+
+    window.onload = carregarDetalhes;
+  </script>
+</body>
+</html>
